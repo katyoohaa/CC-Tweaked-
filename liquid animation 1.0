@@ -3,35 +3,45 @@
 -- CC:Tweaked / CraftOS 1.9
 -- ============================================
 
+-- =========================
+-- MONITOR SETUP
+-- =========================
+
 local monitor = peripheral.find("monitor")
 
 if not monitor then
-    error("No monitor found")
-end
-
-if not monitor.isColor() then
-    error("Monitor does not support colors")
+    error("No monitor found!")
 end
 
 monitor.setTextScale(0.5)
 monitor.setCursorBlink(false)
 
+
 -- =========================
--- SETTINGS
+-- USER SETTINGS
 -- =========================
 
+-- Animation speed.
+-- Lower value = faster.
+-- Higher value = slower.
 local FRAME_DELAY = 0.1
 
+-- Minimum thickness of the liquid lines.
+-- Higher value = larger and smoother patterns.
 local MIN_LINE_THICKNESS = 10
-local MAX_LINE_THICKNESS = 16
 
+-- Speed of the color flow.
 local COLOR_SPEED = 3
+
+-- Speed of the waves.
 local WAVE_SPEED = 5
 
+
 -- =========================
--- COLORS
+-- COLOR PALETTE
 -- =========================
 
+-- Add, remove or reorder colors here.
 local COLORS = {
     colors.lightBlue,
     colors.blue,
@@ -42,105 +52,112 @@ local COLORS = {
     colors.orange
 }
 
-local COLOR_COUNT = #COLORS
 
 -- =========================
--- CREATE MOVING CENTERS
+-- COLOR HELPER
 -- =========================
+
+local function getColor(index)
+    index = (index - 1) % #COLORS + 1
+    return COLORS[index]
+end
+
+
+-- =========================
+-- CREATE ATTRACTOR CENTERS
+-- =========================
+
+-- Each center creates its own liquid flow.
+--
+-- x / y  = starting position
+-- dx / dy = movement speed
+--
+-- Add more centers here if you want a
+-- more complicated liquid pattern.
 
 local function createCenters(width, height)
 
-    local centers = {}
+    return {
 
-    centers[1] = {
-        x = width / 3,
-        y = height / 2,
-        dx = 0.10,
-        dy = 0.08
+        {
+            x = width / 3,
+            y = height / 2,
+            dx = 0.10,
+            dy = 0.08
+        },
+
+        {
+            x = width * 2 / 3,
+            y = height / 2,
+            dx = -0.08,
+            dy = 0.10
+        },
+
+        {
+            x = width / 2,
+            y = height / 3,
+            dx = 0.07,
+            dy = -0.09
+        },
+
+        {
+            x = width / 2,
+            y = height * 2 / 3,
+            dx = -0.10,
+            dy = -0.07
+        }
+
     }
 
-    centers[2] = {
-        x = width * 2 / 3,
-        y = height / 2,
-        dx = -0.08,
-        dy = 0.10
-    }
-
-    centers[3] = {
-        x = width / 2,
-        y = height / 3,
-        dx = 0.07,
-        dy = -0.09
-    }
-
-    centers[4] = {
-        x = width / 2,
-        y = height * 2 / 3,
-        dx = -0.10,
-        dy = -0.07
-    }
-
-    return centers
 end
 
+
 -- =========================
--- UPDATE CENTERS
+-- MOVE ATTRACTOR CENTERS
 -- =========================
 
 local function updateCenters(centers, width, height)
 
-    for i = 1, #centers do
-
-        local center = centers[i]
+    for _, center in ipairs(centers) do
 
         center.x = center.x + center.dx
         center.y = center.y + center.dy
 
-        if center.x < 2 then
-            center.x = 2
-            center.dx = -center.dx
-        elseif center.x > width - 2 then
-            center.x = width - 2
+        -- Bounce from left/right edges.
+        if center.x < 2 or center.x > width - 2 then
             center.dx = -center.dx
         end
 
-        if center.y < 2 then
-            center.y = 2
-            center.dy = -center.dy
-        elseif center.y > height - 2 then
-            center.y = height - 2
+        -- Bounce from top/bottom edges.
+        if center.y < 2 or center.y > height - 2 then
             center.dy = -center.dy
         end
 
     end
+
 end
 
+
 -- =========================
--- DRAW LIQUID
+-- DRAW LIQUID FRAME
 -- =========================
 
-local function drawLiquid(time, centers, width, height)
+local function drawLiquid(time, centers)
 
-    local phase = time / COLOR_SPEED
-    local waveTime = time / WAVE_SPEED
-
-    local thickness = MIN_LINE_THICKNESS
-        + (MAX_LINE_THICKNESS - MIN_LINE_THICKNESS)
-        * (0.5 + 0.5 * math.sin(time / 30))
+    local width, height = monitor.getSize()
 
     for y = 1, height do
 
-        local text = string.rep(" ", width)
-        local textColors = string.rep("0", width)
-        local backgroundColors = ""
+        monitor.setCursorPos(1, y)
 
         for x = 1, width do
 
             local influence = 0
 
-            for i = 1, #centers do
+            -- Calculate the influence of every
+            -- moving attractor center.
 
-                local center = centers[i]
+            for _, center in ipairs(centers) do
 
                 local dx = x - center.x
                 local dy = y - center.y
@@ -149,25 +166,21 @@ local function drawLiquid(time, centers, width, height)
                     dx * dx + dy * dy
                 )
 
-                local angle
+                -- Lua/CC:Tweaked compatible angle calculation.
+                local angle = math.atan(dy, dx)
 
-                if dx == 0 then
-                    if dy >= 0 then
-                        angle = math.pi / 2
-                    else
-                        angle = -math.pi / 2
-                    end
-                else
-                    angle = math.atan(dy / dx)
+                -- Line thickness changes slowly over time,
+                -- but never goes below MIN_LINE_THICKNESS.
 
-                    if dx < 0 then
-                        angle = angle + math.pi
-                    end
-                end
+                local thickness = math.max(
+                    MIN_LINE_THICKNESS,
+                    4 + 2 * math.sin(time / 30)
+                )
 
+                -- Radial wave + rotation.
                 local wave = math.sin(
                     distance / thickness
-                    - waveTime
+                    - time / WAVE_SPEED
                     + angle * 2
                 )
 
@@ -175,36 +188,29 @@ local function drawLiquid(time, centers, width, height)
 
             end
 
+            -- Convert the combined influence into
+            -- a color from the palette.
+
             local colorIndex = math.floor(
-                influence * 2 + phase
+                influence * 2
+                + time / COLOR_SPEED
+            ) % #COLORS + 1
+
+            monitor.setBackgroundColor(
+                getColor(colorIndex)
             )
 
-            colorIndex = (colorIndex % COLOR_COUNT) + 1
-
-            local color = COLORS[colorIndex]
-
-            -- Convert CC color value to blit hexadecimal digit.
-            local blitColor = string.format(
-                "%x",
-                math.log(color, 2)
-            )
-
-            backgroundColors = backgroundColors .. blitColor
+            monitor.write(" ")
 
         end
 
-        monitor.setCursorPos(1, y)
-
-        monitor.blit(
-            text,
-            textColors,
-            backgroundColors
-        )
     end
+
 end
 
+
 -- =========================
--- INITIALIZATION
+-- START ANIMATION
 -- =========================
 
 local width, height = monitor.getSize()
@@ -216,20 +222,12 @@ local centers = createCenters(
 
 local time = 0
 
-monitor.setBackgroundColor(colors.black)
-monitor.clear()
-
--- =========================
--- MAIN LOOP
--- =========================
 
 while true do
 
     drawLiquid(
         time,
-        centers,
-        width,
-        height
+        centers
     )
 
     updateCenters(
