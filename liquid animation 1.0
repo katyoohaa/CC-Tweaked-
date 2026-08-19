@@ -10,38 +10,17 @@
 local monitor = peripheral.find("monitor")
 
 if not monitor then
-    error("No monitor found!")
+    error("No monitor found")
 end
 
 monitor.setTextScale(0.5)
 monitor.setCursorBlink(false)
 
-
--- =========================
--- USER SETTINGS
--- =========================
-
--- Animation speed.
--- Lower value = faster.
--- Higher value = slower.
 local FRAME_DELAY = 0.1
-
--- Minimum thickness of the liquid lines.
--- Higher value = larger and smoother patterns.
 local MIN_LINE_THICKNESS = 10
-
--- Speed of the color flow.
 local COLOR_SPEED = 3
-
--- Speed of the waves.
 local WAVE_SPEED = 5
 
-
--- =========================
--- COLOR PALETTE
--- =========================
-
--- Add, remove or reorder colors here.
 local COLORS = {
     colors.lightBlue,
     colors.blue,
@@ -52,95 +31,73 @@ local COLORS = {
     colors.orange
 }
 
-
--- =========================
--- COLOR HELPER
--- =========================
-
 local function getColor(index)
     index = (index - 1) % #COLORS + 1
     return COLORS[index]
 end
 
-
--- =========================
--- CREATE ATTRACTOR CENTERS
--- =========================
-
--- Each center creates its own liquid flow.
---
--- x / y  = starting position
--- dx / dy = movement speed
---
--- Add more centers here if you want a
--- more complicated liquid pattern.
-
 local function createCenters(width, height)
+    local centers = {}
 
-    return {
-
-        {
-            x = width / 3,
-            y = height / 2,
-            dx = 0.10,
-            dy = 0.08
-        },
-
-        {
-            x = width * 2 / 3,
-            y = height / 2,
-            dx = -0.08,
-            dy = 0.10
-        },
-
-        {
-            x = width / 2,
-            y = height / 3,
-            dx = 0.07,
-            dy = -0.09
-        },
-
-        {
-            x = width / 2,
-            y = height * 2 / 3,
-            dx = -0.10,
-            dy = -0.07
-        }
-
+    centers[1] = {
+        x = width / 3,
+        y = height / 2,
+        dx = 0.10,
+        dy = 0.08
     }
 
+    centers[2] = {
+        x = width * 2 / 3,
+        y = height / 2,
+        dx = -0.08,
+        dy = 0.10
+    }
+
+    centers[3] = {
+        x = width / 2,
+        y = height / 3,
+        dx = 0.07,
+        dy = -0.09
+    }
+
+    centers[4] = {
+        x = width / 2,
+        y = height * 2 / 3,
+        dx = -0.10,
+        dy = -0.07
+    }
+
+    return centers
 end
 
-
--- =========================
--- MOVE ATTRACTOR CENTERS
--- =========================
-
 local function updateCenters(centers, width, height)
-
     for _, center in ipairs(centers) do
 
         center.x = center.x + center.dx
         center.y = center.y + center.dy
 
-        -- Bounce from left/right edges.
-        if center.x < 2 or center.x > width - 2 then
+        if center.x < 2 then
+            center.x = 2
             center.dx = -center.dx
         end
 
-        -- Bounce from top/bottom edges.
-        if center.y < 2 or center.y > height - 2 then
+        if center.x > width - 2 then
+            center.x = width - 2
+            center.dx = -center.dx
+        end
+
+        if center.y < 2 then
+            center.y = 2
+            center.dy = -center.dy
+        end
+
+        if center.y > height - 2 then
+            center.y = height - 2
             center.dy = -center.dy
         end
 
     end
-
 end
-
-
--- =========================
--- DRAW LIQUID FRAME
--- =========================
 
 local function drawLiquid(time, centers)
 
@@ -154,9 +111,6 @@ local function drawLiquid(time, centers)
 
             local influence = 0
 
-            -- Calculate the influence of every
-            -- moving attractor center.
-
             for _, center in ipairs(centers) do
 
                 local dx = x - center.x
@@ -166,18 +120,13 @@ local function drawLiquid(time, centers)
                     dx * dx + dy * dy
                 )
 
-                -- Lua/CC:Tweaked compatible angle calculation.
                 local angle = math.atan(dy, dx)
-
-                -- Line thickness changes slowly over time,
-                -- but never goes below MIN_LINE_THICKNESS.
 
                 local thickness = math.max(
                     MIN_LINE_THICKNESS,
                     4 + 2 * math.sin(time / 30)
                 )
 
-                -- Radial wave + rotation.
                 local wave = math.sin(
                     distance / thickness
                     - time / WAVE_SPEED
@@ -188,13 +137,12 @@ local function drawLiquid(time, centers)
 
             end
 
-            -- Convert the combined influence into
-            -- a color from the palette.
-
             local colorIndex = math.floor(
                 influence * 2
                 + time / COLOR_SPEED
-            ) % #COLORS + 1
+            )
+
+            colorIndex = (colorIndex % #COLORS) + 1
 
             monitor.setBackgroundColor(
                 getColor(colorIndex)
@@ -203,15 +151,8 @@ local function drawLiquid(time, centers)
             monitor.write(" ")
 
         end
-
     end
-
 end
-
-
--- =========================
--- START ANIMATION
--- =========================
 
 local width, height = monitor.getSize()
 
@@ -222,13 +163,9 @@ local centers = createCenters(
 
 local time = 0
 
-
 while true do
 
-    drawLiquid(
-        time,
-        centers
-    )
+    drawLiquid(time, centers)
 
     updateCenters(
         centers,
