@@ -1,88 +1,243 @@
-Возьми этот код и сделай его удобочитаемым и легкоизменяемым для любого, кто захочет его себе, и пиши на английском всё 
--- Находим монитор
-local mon = peripheral.find("monitor")
-if not mon then error("Монитор не найден") end
+-- ============================================
+-- LIQUID COLOR FLOW
+-- CC:Tweaked / CraftOS 1.9
+-- ============================================
 
--- Настройка
-mon.setTextScale(0.5)
-mon.setCursorBlink(false)
+-- =========================
+-- MONITOR SETUP
+-- =========================
 
--- Палитра "жидких" цветов
-local palette = {
+local monitor = peripheral.find("monitor")
+
+if not monitor then
+    error("No monitor found!")
+end
+
+monitor.setTextScale(0.5)
+monitor.setCursorBlink(false)
+
+
+-- =========================
+-- USER SETTINGS
+-- =========================
+
+-- Animation speed.
+-- Lower value = faster.
+-- Higher value = slower.
+local FRAME_DELAY = 0.1
+
+-- Minimum thickness of the liquid lines.
+-- Higher value = larger and smoother patterns.
+local MIN_LINE_THICKNESS = 10
+
+-- Speed of the color flow.
+local COLOR_SPEED = 3
+
+-- Speed of the waves.
+local WAVE_SPEED = 5
+
+
+-- =========================
+-- COLOR PALETTE
+-- =========================
+
+-- Add, remove or reorder colors here.
+local COLORS = {
     colors.lightBlue,
     colors.blue,
     colors.cyan,
     colors.pink,
     colors.purple,
     colors.yellow,
-    colors.orange,
+    colors.orange
 }
 
--- Получить цвет с циклом
-local function getColor(i)
-    i = (i - 1) % #palette + 1
-    return palette[i]
+
+-- =========================
+-- COLOR HELPER
+-- =========================
+
+local function getColor(index)
+    index = (index - 1) % #COLORS + 1
+    return COLORS[index]
 end
 
--- Инициализация центров притяжения (быстрее, как в первой версии)
-local function initCenters(w, h)
+
+-- =========================
+-- CREATE ATTRACTOR CENTERS
+-- =========================
+
+-- Each center creates its own liquid flow.
+--
+-- x / y  = starting position
+-- dx / dy = movement speed
+--
+-- Add more centers here if you want a
+-- more complicated liquid pattern.
+
+local function createCenters(width, height)
+
     return {
-        {x = w / 3,     y = h / 2,     dx = 0.1,  dy = 0.08},
-        {x = 2 * w / 3, y = h / 2,     dx = -0.08, dy = 0.1},
-        {x = w / 2,     y = h / 3,     dx = 0.07, dy = -0.09},
-        {x = w / 2,     y = 2 * h / 3, dx = -0.1, dy = -0.07},
+
+        {
+            x = width / 3,
+            y = height / 2,
+            dx = 0.10,
+            dy = 0.08
+        },
+
+        {
+            x = width * 2 / 3,
+            y = height / 2,
+            dx = -0.08,
+            dy = 0.10
+        },
+
+        {
+            x = width / 2,
+            y = height / 3,
+            dx = 0.07,
+            dy = -0.09
+        },
+
+        {
+            x = width / 2,
+            y = height * 2 / 3,
+            dx = -0.10,
+            dy = -0.07
+        }
+
     }
+
 end
 
--- Обновление позиций центров
-local function updateCenters(centers, w, h)
-    for _, c in ipairs(centers) do
-        c.x = c.x + c.dx
-        c.y = c.y + c.dy
 
-        -- отскок от краёв экрана
-        if c.x < 2 or c.x > w - 2 then c.dx = -c.dx end
-        if c.y < 2 or c.y > h - 2 then c.dy = -c.dy end
+-- =========================
+-- MOVE ATTRACTOR CENTERS
+-- =========================
+
+local function updateCenters(centers, width, height)
+
+    for _, center in ipairs(centers) do
+
+        center.x = center.x + center.dx
+        center.y = center.y + center.dy
+
+        -- Bounce from left/right edges.
+        if center.x < 2 or center.x > width - 2 then
+            center.dx = -center.dx
+        end
+
+        -- Bounce from top/bottom edges.
+        if center.y < 2 or center.y > height - 2 then
+            center.dy = -center.dy
+        end
+
     end
+
 end
 
--- Рисуем жидкий узор
-local function drawLiquid(offset, centers)
-    local w, h = mon.getSize()
-    local baseThickness = 10 -- увеличили минимальную толщину
 
-    for y = 1, h do
-        mon.setCursorPos(1, y)
-        for x = 1, w do
+-- =========================
+-- DRAW LIQUID FRAME
+-- =========================
+
+local function drawLiquid(time, centers)
+
+    local width, height = monitor.getSize()
+
+    for y = 1, height do
+
+        monitor.setCursorPos(1, y)
+
+        for x = 1, width do
+
             local influence = 0
 
-            for _, c in ipairs(centers) do
-                local dx, dy = x - c.x, y - c.y
-                local dist = math.sqrt(dx * dx + dy * dy)
-                local angle = math.atan2(dy, dx)
+            -- Calculate the influence of every
+            -- moving attractor center.
 
-                local thickness = math.max(baseThickness, 4 + 2 * math.sin(offset / 30))
-                local wave = math.sin(dist / thickness - offset / 5 + angle * 2)
+            for _, center in ipairs(centers) do
+
+                local dx = x - center.x
+                local dy = y - center.y
+
+                local distance = math.sqrt(
+                    dx * dx + dy * dy
+                )
+
+                -- Lua/CC:Tweaked compatible angle calculation.
+                local angle = math.atan(dy, dx)
+
+                -- Line thickness changes slowly over time,
+                -- but never goes below MIN_LINE_THICKNESS.
+
+                local thickness = math.max(
+                    MIN_LINE_THICKNESS,
+                    4 + 2 * math.sin(time / 30)
+                )
+
+                -- Radial wave + rotation.
+                local wave = math.sin(
+                    distance / thickness
+                    - time / WAVE_SPEED
+                    + angle * 2
+                )
 
                 influence = influence + wave
+
             end
 
-            local colorIndex = math.floor(influence * 2 + offset / 3) % #palette + 1
-            mon.setBackgroundColor(getColor(colorIndex))
-            mon.write(" ")
+            -- Convert the combined influence into
+            -- a color from the palette.
+
+            local colorIndex = math.floor(
+                influence * 2
+                + time / COLOR_SPEED
+            ) % #COLORS + 1
+
+            monitor.setBackgroundColor(
+                getColor(colorIndex)
+            )
+
+            monitor.write(" ")
+
         end
+
     end
+
 end
 
--- Анимация
-local w, h = mon.getSize()
-local centers = initCenters(w, h)
 
-local t = 0
+-- =========================
+-- START ANIMATION
+-- =========================
+
+local width, height = monitor.getSize()
+
+local centers = createCenters(
+    width,
+    height
+)
+
+local time = 0
+
+
 while true do
-    drawLiquid(t, centers)
-    updateCenters(centers, w, h)
-    t = t + 1
-    sleep(0.1) -- вернули прежнюю скорость
-end
 
+    drawLiquid(
+        time,
+        centers
+    )
+
+    updateCenters(
+        centers,
+        width,
+        height
+    )
+
+    time = time + 1
+
+    sleep(FRAME_DELAY)
+
+end
