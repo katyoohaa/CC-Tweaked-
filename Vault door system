@@ -17,25 +17,10 @@ mon.setCursorBlink(false)
 -- ============================================
 
 local doors = {
-    [1] = {
-        name = "Door 1",
-        side = "front"
-    },
-
-    [2] = {
-        name = "Door 2",
-        side = "left"
-    },
-
-    [3] = {
-        name = "Door 3",
-        side = "back"
-    },
-
-    [4] = {
-        name = "Door 4",
-        side = "right"
-    }
+    [1] = "front",
+    [2] = "left",
+    [3] = "back",
+    [4] = "right"
 }
 
 -- ============================================
@@ -45,43 +30,75 @@ local doors = {
 local width, height = mon.getSize()
 
 -- ============================================
--- BUTTON STORAGE
+-- BUTTON SIZE
 -- ============================================
 
-local buttons = {}
+local buttonWidth = 7
+local buttonHeight = 3
+
+-- ============================================
+-- BUTTON POSITIONS
+-- ============================================
+
+local buttons = {
+    [1] = {
+        x = 2,
+        y = math.floor(height / 2) - 1
+    },
+
+    [2] = {
+        x = math.floor(width / 2) - 3,
+        y = 2
+    },
+
+    [3] = {
+        x = width - 8,
+        y = math.floor(height / 2) - 1
+    },
+
+    [4] = {
+        x = math.floor(width / 2) - 3,
+        y = height - 4
+    }
+}
 
 -- ============================================
 -- DRAW BUTTON
 -- ============================================
 
-local function drawButton(number, x, y, w, h)
+local function drawButton(number, active)
 
-    buttons[number] = {
-        x1 = x,
-        y1 = y,
-        x2 = x + w - 1,
-        y2 = y + h - 1
-    }
+    local button = buttons[number]
 
-    mon.setBackgroundColor(colors.gray)
-
-    for yy = y, y + h - 1 do
-        mon.setCursorPos(x, yy)
-        mon.write(string.rep(" ", w))
+    if active then
+        mon.setBackgroundColor(colors.green)
+    else
+        mon.setBackgroundColor(colors.gray)
     end
+
+    for y = button.y, button.y + buttonHeight - 1 do
+        mon.setCursorPos(button.x, y)
+        mon.write(string.rep(" ", buttonWidth))
+    end
+
+    mon.setTextColor(colors.white)
 
     local text = tostring(number)
 
-    local tx = x + math.floor((w - #text) / 2)
-    local ty = y + math.floor((h - 1) / 2)
+    local textX =
+        button.x
+        + math.floor((buttonWidth - #text) / 2)
 
-    mon.setTextColor(colors.white)
-    mon.setCursorPos(tx, ty)
+    local textY =
+        button.y
+        + math.floor((buttonHeight - 1) / 2)
+
+    mon.setCursorPos(textX, textY)
     mon.write(text)
 end
 
 -- ============================================
--- DRAW CLOCK LAYOUT
+-- DRAW SCREEN
 -- ============================================
 
 local function drawScreen()
@@ -89,96 +106,25 @@ local function drawScreen()
     mon.setBackgroundColor(colors.black)
     mon.clear()
 
-    buttons = {}
-
-    -- Button size
-    local buttonWidth = math.max(5, math.floor(width / 4))
-    local buttonHeight = math.max(3, math.floor(height / 4))
-
-    -- Center position
-    local centerX = math.floor(width / 2)
-    local centerY = math.floor(height / 2)
-
-    -- ========================================
-    -- 2 = TOP (12 O'CLOCK)
-    -- ========================================
-
-    drawButton(
-        2,
-        centerX - math.floor(buttonWidth / 2),
-        2,
-        buttonWidth,
-        buttonHeight
-    )
-
-    -- ========================================
-    -- 1 = LEFT (9 O'CLOCK)
-    -- ========================================
-
-    drawButton(
-        1,
-        1,
-        centerY - math.floor(buttonHeight / 2),
-        buttonWidth,
-        buttonHeight
-    )
-
-    -- ========================================
-    -- 3 = RIGHT (3 O'CLOCK)
-    -- ========================================
-
-    drawButton(
-        3,
-        width - buttonWidth + 1,
-        centerY - math.floor(buttonHeight / 2),
-        buttonWidth,
-        buttonHeight
-    )
-
-    -- ========================================
-    -- 4 = BOTTOM (6 O'CLOCK)
-    -- ========================================
-
-    drawButton(
-        4,
-        centerX - math.floor(buttonWidth / 2),
-        height - buttonHeight + 1,
-        buttonWidth,
-        buttonHeight
-    )
+    -- Draw all four buttons
+    drawButton(1, false)
+    drawButton(2, false)
+    drawButton(3, false)
+    drawButton(4, false)
 end
 
 -- ============================================
--- SEND REDSTONE PULSE
--- ============================================
-
-local function openDoor(number)
-
-    local door = doors[number]
-
-    if not door then
-        return
-    end
-
-    redstone.setOutput(door.side, true)
-
-    sleep(0.2)
-
-    redstone.setOutput(door.side, false)
-end
-
--- ============================================
--- FIND PRESSED BUTTON
+-- CHECK BUTTON
 -- ============================================
 
 local function getButton(x, y)
 
     for number, button in pairs(buttons) do
 
-        if x >= button.x1
-            and x <= button.x2
-            and y >= button.y1
-            and y <= button.y2 then
+        if x >= button.x
+            and x < button.x + buttonWidth
+            and y >= button.y
+            and y < button.y + buttonHeight then
 
             return number
         end
@@ -188,54 +134,49 @@ local function getButton(x, y)
 end
 
 -- ============================================
--- MAIN LOOP
+-- OPEN DOOR
+-- ============================================
+
+local function openDoor(number)
+
+    local side = doors[number]
+
+    if not side then
+        return
+    end
+
+    -- Send short redstone pulse
+    redstone.setOutput(side, true)
+
+    sleep(0.2)
+
+    redstone.setOutput(side, false)
+end
+
+-- ============================================
+-- START
 -- ============================================
 
 drawScreen()
 
 while true do
 
-    local event, side, x, y = os.pullEvent("monitor_touch")
+    local event, side, x, y =
+        os.pullEvent("monitor_touch")
 
     local number = getButton(x, y)
 
     if number then
 
+        -- Open door
         openDoor(number)
 
-        -- Visual feedback
-        local button = buttons[number]
-
-        mon.setBackgroundColor(colors.green)
-
-        for yy = button.y1, button.y2 do
-            mon.setCursorPos(button.x1, yy)
-            mon.write(
-                string.rep(
-                    " ",
-                    button.x2 - button.x1 + 1
-                )
-            )
-        end
-
-        local text = tostring(number)
-
-        local tx = button.x1
-            + math.floor(
-                ((button.x2 - button.x1 + 1) - #text) / 2
-            )
-
-        local ty = button.y1
-            + math.floor(
-                ((button.y2 - button.y1 + 1) / 2)
-            )
-
-        mon.setTextColor(colors.white)
-        mon.setCursorPos(tx, ty)
-        mon.write(text)
+        -- Show pressed button
+        drawButton(number, true)
 
         sleep(0.25)
 
+        -- Restore screen
         drawScreen()
     end
 end
