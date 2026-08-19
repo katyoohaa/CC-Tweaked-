@@ -145,7 +145,7 @@ while true do
         -- Кнопка становится зелёной
         drawButton(number, true)
 
-        sleep(0.25)
+        sleep(1)
 
         -- Возвращаем красный цвет
         drawScreen()
