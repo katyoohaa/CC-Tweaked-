@@ -1,0 +1,82 @@
+-------------------------------
+-- Liquid Wave Animation 
+-- For CC:Tweaked Monitors
+-- Description:
+--   Creates colorful, flowing patterns that look like liquid waves.
+--   Multiple "attraction centers" move across the screen and influence the waves.
+-------------------------------
+
+-- === Monitor Setup ===
+local mon = peripheral.find("monitor")
+if not mon then error("No monitor found! Attach a monitor peripheral.") end
+
+-- Recommended: adjust scale to fit your monitor
+mon.setTextScale(0.5)
+mon.setCursorBlink(false)
+
+-- === User Settings ===
+local FRAME_DELAY     = 0.1   -- Time between frames (lower = faster animation)
+local BASE_THICKNESS  = 3     -- Minimum wave thickness (higher = smoother/less noisy)
+local COLOR_PALETTE   = {     -- Colors used in the animation
+    colors.lightBlue,
+    colors.blue,
+    colors.cyan,
+    colors.pink,
+    colors.purple,
+    colors.yellow,
+    colors.orange,
+}
+
+-- === Helpers ===
+
+-- Cycle through colors from the palette
+local function getColor(i)
+    i = (i - 1) % #COLOR_PALETTE + 1
+    return COLOR_PALETTE[i]
+end
+
+-- Initialize moving "attraction centers"
+-- Each center influences the waves on screen
+local function initCenters(w, h)
+    return {
+        {x = w / 3,     y = h / 2,     dx = 0.1,  dy = 0.08},
+        {x = 2 * w / 3, y = h / 2,     dx = -0.08, dy = 0.1},
+        {x = w / 2,     y = h / 3,     dx = 0.07, dy = -0.09},
+        {x = w / 2,     y = 2 * h / 3, dx = -0.1, dy = -0.07},
+    }
+end
+
+-- Update center positions (bounce when hitting screen edges)
+local function updateCenters(centers, w, h)
+    for _, c in ipairs(centers) do
+        c.x = c.x + c.dx
+        c.y = c.y + c.dy
+
+        if c.x < 2 or c.x > w - 2 then c.dx = -c.dx end
+        if c.y < 2 or c.y > h - 2 then c.dy = -c.dy end
+    end
+end
+
+-- Draw a single frame of the liquid wave effect
+local function drawLiquid(offset, centers)
+    local w, h = mon.getSize()
+
+    for y = 1, h do
+        mon.setCursorPos(1, y)
+        for x = 1, w do
+            local influence = 0
+
+            -- Calculate influence of all centers
+            for _, c in ipairs(centers) do
+                local dx, dy = x - c.x, y - c.y
+                local dist = math.sqrt(dx * dx + dy * dy)
+                local angle = math.atan2(dy, dx)
+
+                local thickness = math.max(BASE_THICKNESS, 4 + 2 * math.sin(offset / 30))
+                local wave = math.sin(dist / thickness - offset / 5 + angle * 2)
+
+                influence = influence + wave
+            end
+
+            -- Pick color based on influence value
+            local colorIndex = math.floor(influence * 2 + offset / 3) % #COLOR*
