@@ -1,0 +1,19 @@
+-- monitor_size.lua
+local mon = peripheral.find("monitor")
+if not mon then
+    print("No monitor!")
+    return
+end
+
+-- получаем размеры монитора в пикселях
+local pixelWidth, pixelHeight = mon.getSize()
+
+-- получаем размеры монитора в блоках
+-- term.getSize() после redirect показывает размер в символах (1 символ = 1 блок)
+local originalTerm = term.redirect(mon)
+local blockWidth, blockHeight = term.getSize()
+term.redirect(originalTerm)
+
+print("Monitor size:")
+print("- Block: " .. blockWidth .. " x " .. blockHeight)
+print("- Pixel: " .. pixelWidth .. " x " .. pixelHeight)
