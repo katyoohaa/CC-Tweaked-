@@ -1,6 +1,7 @@
 -- ============================================
 -- 4 DOOR CONTROL
 -- CC:TWEAKED / CRAFTOS 1.9
+-- MONITOR: 14x10
 -- ============================================
 
 local mon = peripheral.find("monitor")
@@ -33,8 +34,8 @@ local width, height = mon.getSize()
 -- BUTTON SIZE
 -- ============================================
 
-local buttonWidth = 7
-local buttonHeight = 3
+local buttonWidth = 3
+local buttonHeight = 1
 
 -- ============================================
 -- BUTTON POSITIONS
@@ -42,23 +43,23 @@ local buttonHeight = 3
 
 local buttons = {
     [1] = {
-        x = 2,
-        y = math.floor(height / 2) - 1
+        x = 1,
+        y = 5
     },
 
     [2] = {
-        x = math.floor(width / 2) - 3,
-        y = 2
+        x = 6,
+        y = 1
     },
 
     [3] = {
-        x = width - 8,
-        y = math.floor(height / 2) - 1
+        x = 12,
+        y = 5
     },
 
     [4] = {
-        x = math.floor(width / 2) - 3,
-        y = height - 4
+        x = 6,
+        y = 9
     }
 }
 
@@ -76,25 +77,9 @@ local function drawButton(number, active)
         mon.setBackgroundColor(colors.gray)
     end
 
-    for y = button.y, button.y + buttonHeight - 1 do
-        mon.setCursorPos(button.x, y)
-        mon.write(string.rep(" ", buttonWidth))
-    end
+    mon.setCursorPos(button.x, button.y)
+    mon.write(" " .. number .. " ")
 
-    mon.setTextColor(colors.white)
-
-    local text = tostring(number)
-
-    local textX =
-        button.x
-        + math.floor((buttonWidth - #text) / 2)
-
-    local textY =
-        button.y
-        + math.floor((buttonHeight - 1) / 2)
-
-    mon.setCursorPos(textX, textY)
-    mon.write(text)
 end
 
 -- ============================================
@@ -106,7 +91,8 @@ local function drawScreen()
     mon.setBackgroundColor(colors.black)
     mon.clear()
 
-    -- Draw all four buttons
+    mon.setTextColor(colors.white)
+
     drawButton(1, false)
     drawButton(2, false)
     drawButton(3, false)
@@ -123,8 +109,7 @@ local function getButton(x, y)
 
         if x >= button.x
             and x < button.x + buttonWidth
-            and y >= button.y
-            and y < button.y + buttonHeight then
+            and y == button.y then
 
             return number
         end
@@ -168,15 +153,12 @@ while true do
 
     if number then
 
-        -- Open door
         openDoor(number)
 
-        -- Show pressed button
         drawButton(number, true)
 
         sleep(0.25)
 
-        -- Restore screen
         drawScreen()
     end
 end
