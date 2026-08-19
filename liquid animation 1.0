@@ -3,23 +3,34 @@
 -- CC:Tweaked / CraftOS 1.9
 -- ============================================
 
--- =========================
--- MONITOR SETUP
--- =========================
-
 local monitor = peripheral.find("monitor")
 
 if not monitor then
     error("No monitor found")
 end
 
+if not monitor.isColor() then
+    error("Monitor does not support colors")
+end
+
 monitor.setTextScale(0.5)
 monitor.setCursorBlink(false)
 
+-- =========================
+-- SETTINGS
+-- =========================
+
 local FRAME_DELAY = 0.1
+
 local MIN_LINE_THICKNESS = 10
+local MAX_LINE_THICKNESS = 16
+
 local COLOR_SPEED = 3
 local WAVE_SPEED = 5
+
+-- =========================
+-- COLORS
+-- =========================
 
 local COLORS = {
     colors.lightBlue,
@@ -31,12 +42,14 @@ local COLORS = {
     colors.orange
 }
 
-local function getColor(index)
-    index = (index - 1) % #COLORS + 1
-    return COLORS[index]
-end
+local COLOR_COUNT = #COLORS
+
+-- =========================
+-- CREATE MOVING CENTERS
+-- =========================
 
 local function createCenters(width, height)
+
     local centers = {}
 
     centers[1] = {
@@ -70,8 +83,15 @@ local function createCenters(width, height)
     return centers
 end
 
+-- =========================
+-- UPDATE CENTERS
+-- =========================
+
 local function updateCenters(centers, width, height)
-    for _, center in ipairs(centers) do
+
+    for i = 1, #centers do
+
+        local center = centers[i]
 
         center.x = center.x + center.dx
         center.y = center.y + center.dy
@@ -79,9 +99,7 @@ local function updateCenters(centers, width, height)
         if center.x < 2 then
             center.x = 2
             center.dx = -center.dx
-        end
-
-        if center.x > width - 2 then
+        elseif center.x > width - 2 then
             center.x = width - 2
             center.dx = -center.dx
         end
@@ -89,9 +107,7 @@ local function updateCenters(centers, width, height)
         if center.y < 2 then
             center.y = 2
             center.dy = -center.dy
-        end
-
-        if center.y > height - 2 then
+        elseif center.y > height - 2 then
             center.y = height - 2
             center.dy = -center.dy
         end
@@ -99,19 +115,32 @@ local function updateCenters(centers, width, height)
     end
 end
 
-local function drawLiquid(time, centers)
+-- =========================
+-- DRAW LIQUID
+-- =========================
 
-    local width, height = monitor.getSize()
+local function drawLiquid(time, centers, width, height)
+
+    local phase = time / COLOR_SPEED
+    local waveTime = time / WAVE_SPEED
+
+    local thickness = MIN_LINE_THICKNESS
+        + (MAX_LINE_THICKNESS - MIN_LINE_THICKNESS)
+        * (0.5 + 0.5 * math.sin(time / 30))
 
     for y = 1, height do
 
-        monitor.setCursorPos(1, y)
+        local text = string.rep(" ", width)
+        local textColors = string.rep("0", width)
+        local backgroundColors = ""
 
         for x = 1, width do
 
             local influence = 0
 
-            for _, center in ipairs(centers) do
+            for i = 1, #centers do
+
+                local center = centers[i]
 
                 local dx = x - center.x
                 local dy = y - center.y
@@ -120,16 +149,25 @@ local function drawLiquid(time, centers)
                     dx * dx + dy * dy
                 )
 
-                local angle = math.atan(dy, dx)
+                local angle
 
-                local thickness = math.max(
-                    MIN_LINE_THICKNESS,
-                    4 + 2 * math.sin(time / 30)
-                )
+                if dx == 0 then
+                    if dy >= 0 then
+                        angle = math.pi / 2
+                    else
+                        angle = -math.pi / 2
+                    end
+                else
+                    angle = math.atan(dy / dx)
+
+                    if dx < 0 then
+                        angle = angle + math.pi
+                    end
+                end
 
                 local wave = math.sin(
                     distance / thickness
-                    - time / WAVE_SPEED
+                    - waveTime
                     + angle * 2
                 )
 
@@ -138,21 +176,36 @@ local function drawLiquid(time, centers)
             end
 
             local colorIndex = math.floor(
-                influence * 2
-                + time / COLOR_SPEED
+                influence * 2 + phase
             )
 
-            colorIndex = (colorIndex % #COLORS) + 1
+            colorIndex = (colorIndex % COLOR_COUNT) + 1
 
-            monitor.setBackgroundColor(
-                getColor(colorIndex)
+            local color = COLORS[colorIndex]
+
+            -- Convert CC color value to blit hexadecimal digit.
+            local blitColor = string.format(
+                "%x",
+                math.log(color, 2)
             )
 
-            monitor.write(" ")
+            backgroundColors = backgroundColors .. blitColor
 
         end
+
+        monitor.setCursorPos(1, y)
+
+        monitor.blit(
+            text,
+            textColors,
+            backgroundColors
+        )
     end
 end
+
+-- =========================
+-- INITIALIZATION
+-- =========================
 
 local width, height = monitor.getSize()
 
@@ -163,9 +216,21 @@ local centers = createCenters(
 
 local time = 0
 
+monitor.setBackgroundColor(colors.black)
+monitor.clear()
+
+-- =========================
+-- MAIN LOOP
+-- =========================
+
 while true do
 
-    drawLiquid(time, centers)
+    drawLiquid(
+        time,
+        centers,
+        width,
+        height
+    )
 
     updateCenters(
         centers,
