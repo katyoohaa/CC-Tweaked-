@@ -50,22 +50,22 @@ local buttonHeight = 3
 
 local buttons = {
     [1] = {
-        x = 1,
+        x = 2,
         y = 4
     },
 
     [2] = {
-        x = 6,
-        y = 1
+        x = 7,
+        y = 2
     },
 
     [3] = {
-        x = 11,
+        x = 13,
         y = 4
     },
 
     [4] = {
-        x = 6,
+        x = 7,
         y = 8
     }
 }
