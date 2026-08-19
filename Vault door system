@@ -25,41 +25,39 @@ local doors = {
 }
 
 -- ============================================
--- MONITOR SIZE
--- ============================================
-
-local width, height = mon.getSize()
-
--- ============================================
 -- BUTTON SIZE
 -- ============================================
 
-local buttonWidth = 3
-local buttonHeight = 1
+local buttonWidth = 5
+local buttonHeight = 2
 
 -- ============================================
 -- BUTTON POSITIONS
 -- ============================================
 
 local buttons = {
+    -- Left
     [1] = {
         x = 1,
         y = 5
     },
 
+    -- Top
     [2] = {
-        x = 6,
+        x = 5,
         y = 1
     },
 
+    -- Right
     [3] = {
-        x = 12,
+        x = 9,
         y = 5
     },
 
+    -- Bottom
     [4] = {
-        x = 6,
-        y = 9
+        x = 5,
+        y = 8
     }
 }
 
@@ -77,9 +75,29 @@ local function drawButton(number, active)
         mon.setBackgroundColor(colors.gray)
     end
 
-    mon.setCursorPos(button.x, button.y)
-    mon.write(" " .. number .. " ")
+    for row = 0, buttonHeight - 1 do
+        mon.setCursorPos(
+            button.x,
+            button.y + row
+        )
 
+        mon.write(string.rep(" ", buttonWidth))
+    end
+
+    mon.setTextColor(colors.white)
+
+    local text = tostring(number)
+
+    local textX =
+        button.x
+        + math.floor((buttonWidth - #text) / 2)
+
+    local textY =
+        button.y
+        + math.floor(buttonHeight / 2)
+
+    mon.setCursorPos(textX, textY)
+    mon.write(text)
 end
 
 -- ============================================
@@ -109,7 +127,8 @@ local function getButton(x, y)
 
         if x >= button.x
             and x < button.x + buttonWidth
-            and y == button.y then
+            and y >= button.y
+            and y < button.y + buttonHeight then
 
             return number
         end
@@ -130,7 +149,6 @@ local function openDoor(number)
         return
     end
 
-    -- Send short redstone pulse
     redstone.setOutput(side, true)
 
     sleep(0.2)
@@ -139,7 +157,7 @@ local function openDoor(number)
 end
 
 -- ============================================
--- START
+-- MAIN LOOP
 -- ============================================
 
 drawScreen()
