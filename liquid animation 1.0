@@ -1,24 +1,14 @@
--------------------------------
--- Liquid Wave Monitor Effect
--- For CC:Tweaked Monitors
--- Author: YourName
--- Description:
---   Creates colorful, flowing patterns that look like liquid waves.
---   Multiple "attraction centers" move across the screen and influence the waves.
--------------------------------
-
--- === Monitor Setup ===
+Возьми этот код и сделай его удобочитаемым и легкоизменяемым для любого, кто захочет его себе, и пиши на английском всё 
+-- Находим монитор
 local mon = peripheral.find("monitor")
-if not mon then error("No monitor found! Attach a monitor peripheral.") end
+if not mon then error("Монитор не найден") end
 
--- Recommended: adjust scale to fit your monitor
+-- Настройка
 mon.setTextScale(0.5)
 mon.setCursorBlink(false)
 
--- === User Settings ===
-local FRAME_DELAY     = 0.1   -- Time between frames (lower = faster animation)
-local BASE_THICKNESS  = 3     -- Minimum wave thickness (higher = smoother/less noisy)
-local COLOR_PALETTE   = {     -- Colors used in the animation
+-- Палитра "жидких" цветов
+local palette = {
     colors.lightBlue,
     colors.blue,
     colors.cyan,
@@ -28,16 +18,13 @@ local COLOR_PALETTE   = {     -- Colors used in the animation
     colors.orange,
 }
 
--- === Helpers ===
-
--- Cycle through colors from the palette
+-- Получить цвет с циклом
 local function getColor(i)
-    i = (i - 1) % #COLOR_PALETTE + 1
-    return COLOR_PALETTE[i]
+    i = (i - 1) % #palette + 1
+    return palette[i]
 end
 
--- Initialize moving "attraction centers"
--- Each center influences the waves on screen
+-- Инициализация центров притяжения (быстрее, как в первой версии)
 local function initCenters(w, h)
     return {
         {x = w / 3,     y = h / 2,     dx = 0.1,  dy = 0.08},
@@ -47,54 +34,55 @@ local function initCenters(w, h)
     }
 end
 
--- Update center positions (bounce when hitting screen edges)
+-- Обновление позиций центров
 local function updateCenters(centers, w, h)
     for _, c in ipairs(centers) do
         c.x = c.x + c.dx
         c.y = c.y + c.dy
 
+        -- отскок от краёв экрана
         if c.x < 2 or c.x > w - 2 then c.dx = -c.dx end
         if c.y < 2 or c.y > h - 2 then c.dy = -c.dy end
     end
 end
 
--- Draw a single frame of the liquid wave effect
+-- Рисуем жидкий узор
 local function drawLiquid(offset, centers)
     local w, h = mon.getSize()
+    local baseThickness = 10 -- увеличили минимальную толщину
 
     for y = 1, h do
         mon.setCursorPos(1, y)
         for x = 1, w do
             local influence = 0
 
-            -- Calculate influence of all centers
             for _, c in ipairs(centers) do
                 local dx, dy = x - c.x, y - c.y
                 local dist = math.sqrt(dx * dx + dy * dy)
                 local angle = math.atan2(dy, dx)
 
-                local thickness = math.max(BASE_THICKNESS, 4 + 2 * math.sin(offset / 30))
+                local thickness = math.max(baseThickness, 4 + 2 * math.sin(offset / 30))
                 local wave = math.sin(dist / thickness - offset / 5 + angle * 2)
 
                 influence = influence + wave
             end
 
-            -- Pick color based on influence value
-            local colorIndex = math.floor(influence * 2 + offset / 3) % #COLOR_PALETTE + 1
+            local colorIndex = math.floor(influence * 2 + offset / 3) % #palette + 1
             mon.setBackgroundColor(getColor(colorIndex))
             mon.write(" ")
         end
     end
 end
 
--- === Main Loop ===
+-- Анимация
 local w, h = mon.getSize()
 local centers = initCenters(w, h)
-local t = 0
 
+local t = 0
 while true do
     drawLiquid(t, centers)
     updateCenters(centers, w, h)
     t = t + 1
-    sleep(FRAME_DELAY)
+    sleep(0.1) -- вернули прежнюю скорость
 end
+
