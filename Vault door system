@@ -1,7 +1,7 @@
 -- ============================================
 -- 4 DOOR CONTROL
 -- CC:TWEAKED / CRAFTOS 1.9
--- MONITOR: 14x10
+-- MONITOR: 15x10
 -- ============================================
 
 local mon = peripheral.find("monitor")
@@ -25,12 +25,6 @@ local doors = {
 }
 
 -- ============================================
--- MONITOR SIZE
--- ============================================
-
-local width, height = mon.getSize()
-
--- ============================================
 -- BUTTON SIZE
 -- ============================================
 
@@ -39,18 +33,11 @@ local buttonHeight = 3
 
 -- ============================================
 -- BUTTON POSITIONS
--- Monitor: 14x10
---
---       [ 2 ]
---
--- [1]         [3]
---
---       [ 4 ]
 -- ============================================
 
 local buttons = {
     [1] = {
-        x = 2,
+        x = 3,
         y = 4
     },
 
@@ -71,7 +58,7 @@ local buttons = {
 }
 
 -- ============================================
--- DRAW BUTTON
+-- DRAW LARGE NUMBER
 -- ============================================
 
 local function drawButton(number, active)
@@ -79,24 +66,59 @@ local function drawButton(number, active)
     local button = buttons[number]
 
     if active then
-        mon.setBackgroundColor(colors.green)
+        mon.setTextColor(colors.green)
     else
-        mon.setBackgroundColor(colors.red)
+        mon.setTextColor(colors.red)
     end
 
-    mon.setTextColor(colors.white)
+    mon.setBackgroundColor(colors.black)
 
-    -- Верхняя строка
-    mon.setCursorPos(button.x, button.y)
-    mon.write("   ")
+    -- Большая цифра 3x3
+    if number == 1 then
 
-    -- Центральная строка с цифрой
-    mon.setCursorPos(button.x, button.y + 1)
-    mon.write(" " .. number .. " ")
+        mon.setCursorPos(button.x, button.y)
+        mon.write(" # ")
 
-    -- Нижняя строка
-    mon.setCursorPos(button.x, button.y + 2)
-    mon.write("   ")
+        mon.setCursorPos(button.x, button.y + 1)
+        mon.write("## ")
+
+        mon.setCursorPos(button.x, button.y + 2)
+        mon.write("###")
+
+    elseif number == 2 then
+
+        mon.setCursorPos(button.x, button.y)
+        mon.write("## ")
+
+        mon.setCursorPos(button.x, button.y + 1)
+        mon.write("###")
+
+        mon.setCursorPos(button.x, button.y + 2)
+        mon.write("###")
+
+    elseif number == 3 then
+
+        mon.setCursorPos(button.x, button.y)
+        mon.write("## ")
+
+        mon.setCursorPos(button.x, button.y + 1)
+        mon.write("###")
+
+        mon.setCursorPos(button.x, button.y + 2)
+        mon.write("## ")
+
+    elseif number == 4 then
+
+        mon.setCursorPos(button.x, button.y)
+        mon.write("# #")
+
+        mon.setCursorPos(button.x, button.y + 1)
+        mon.write("###")
+
+        mon.setCursorPos(button.x, button.y + 2)
+        mon.write("  #")
+
+    end
 
 end
 
@@ -148,7 +170,6 @@ local function openDoor(number)
         return
     end
 
-    -- Send short redstone pulse
     redstone.setOutput(side, true)
 
     sleep(0.2)
@@ -175,12 +196,12 @@ while true do
         -- Открываем дверь
         openDoor(number)
 
-        -- Показываем нажатую кнопку зелёной
+        -- Цифра становится зелёной
         drawButton(number, true)
 
         sleep(0.25)
 
-        -- Возвращаем все кнопки в красный цвет
+        -- Возвращаем красный цвет
         drawScreen()
 
     end
