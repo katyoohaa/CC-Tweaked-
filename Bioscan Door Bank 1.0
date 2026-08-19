@@ -1,6 +1,6 @@
 --------------------------------------------------
--- БАНКОВСКОЕ ХРАНИЛИЩЕ
--- СКАНЕР ЛИЧНОСТИ
+-- BANK VAULT
+-- IDENTITY SCANNER
 -- CC:Tweaked + Advanced Peripherals
 --------------------------------------------------
 
@@ -8,27 +8,27 @@
 -- НАСТРОЙКИ
 --------------------------------------------------
 
--- Два разрешённых игрока
+-- Разрешённые игроки
 local AUTHORIZED_PLAYERS = {
-    "PlayerOne",
-    "PlayerTwo"
+    "4udomoloko",
+    "katyo0haa"
 }
 
--- Редстоун двери подключён снизу
+-- Сторона редстоуна двери
 local DOOR_SIDE = "bottom"
 
 -- Радиус сканирования
 local SCAN_RADIUS = 5
 
--- Длительность импульса открытия
+-- Длительность импульса открытия двери
 local DOOR_PULSE_TIME = 0.2
 
--- Время показа результата
+-- Сколько секунд показывать результат
 local MESSAGE_TIME = 5
 
 
 --------------------------------------------------
--- ПОИСК ДЕТЕКТОРА ИГРОКОВ
+-- ПОИСК PLAYER DETECTOR
 --------------------------------------------------
 
 local PLAYER = peripheral.find("playerDetector")
@@ -38,11 +38,11 @@ if not PLAYER then
     term.clear()
     term.setCursorPos(1, 1)
 
-    print("ОШИБКА:")
-    print("Детектор игрока не найден!")
+    print("ERROR:")
+    print("Player Detector not found!")
     print()
-    print("Подключите Player Detector")
-    print("к компьютеру.")
+    print("Connect an Advanced Peripherals")
+    print("Player Detector to the computer.")
 
     return
 end
@@ -79,7 +79,7 @@ end
 
 
 --------------------------------------------------
--- ЦЕНТРИРОВАНИЕ
+-- ЦЕНТРИРОВАНИЕ ТЕКСТА
 --------------------------------------------------
 
 local function center(text, y)
@@ -111,19 +111,19 @@ local function drawScannerScreen()
     local _, height = term.getSize()
 
     center("==============================", 2)
-    center("БАНКОВСКОЕ ХРАНИЛИЩЕ", 3)
+    center("BANK VAULT SYSTEM", 3)
     center("==============================", 4)
 
-    center("СКАНЕР ЛИЧНОСТИ", 7)
+    center("IDENTITY SCANNER", 7)
 
-    center("НАЖМИТЕ ENTER ДЛЯ СКАНА", 9)
+    center("PRESS ENTER TO SCAN", 9)
 
     center("------------------------------", 11)
 
-    center("ДОПУЩЕНО ПЕРСОН: 2", 13)
+    center("AUTHORIZED PERSONNEL: 2", 13)
 
     center(
-        "СИСТЕМА БЕЗОПАСНОСТИ БАНКА",
+        "BANK SECURITY SYSTEM",
         height - 1
     )
 
@@ -139,10 +139,10 @@ local function drawScanningScreen()
     clearScreen()
 
     center("==============================", 4)
-    center("СКАНИРОВАНИЕ ЛИЧНОСТИ", 6)
+    center("IDENTITY SCAN", 6)
     center("==============================", 8)
 
-    center("СКАНИРОВАНИЕ...", 10)
+    center("SCANNING...", 10)
 
 end
 
@@ -158,17 +158,17 @@ local function drawAccessGranted(playerName)
     local _, height = term.getSize()
 
     center("==============================", 4)
-    center("ЛИЧНОСТЬ ПОДТВЕРЖДЕНА", 6)
+    center("IDENTITY VERIFIED", 6)
     center("==============================", 8)
 
-    center("ДОСТУП РАЗРЕШЁН", 10)
+    center("ACCESS GRANTED", 10)
 
     center(playerName, 12)
 
-    center("ДВЕРЬ ОТКРЫТА", 14)
+    center("VAULT DOOR OPEN", 14)
 
     center(
-        "СИСТЕМА БЕЗОПАСНОСТИ БАНКА",
+        "BANK SECURITY SYSTEM",
         height - 1
     )
 
@@ -186,17 +186,17 @@ local function drawAccessDenied()
     local _, height = term.getSize()
 
     center("==============================", 4)
-    center("ЛИЧНОСТЬ НЕ ПОДТВЕРЖДЕНА", 6)
+    center("IDENTITY REJECTED", 6)
     center("==============================", 8)
 
-    center("ДОСТУП ЗАПРЕЩЁН", 10)
+    center("ACCESS DENIED", 10)
 
-    center("ДОПУЩЕННЫЙ ПЕРСОНАЛ", 12)
+    center("AUTHORIZED PERSONNEL", 12)
 
-    center("НЕ ОБНАРУЖЕН", 14)
+    center("NOT DETECTED", 14)
 
     center(
-        "СИСТЕМА БЕЗОПАСНОСТИ БАНКА",
+        "BANK SECURITY SYSTEM",
         height - 1
     )
 
@@ -204,7 +204,7 @@ end
 
 
 --------------------------------------------------
--- НИКТО НЕ ОБНАРУЖЕН
+-- НИКОГО НЕТ
 --------------------------------------------------
 
 local function drawNoPlayer()
@@ -214,17 +214,17 @@ local function drawNoPlayer()
     local _, height = term.getSize()
 
     center("==============================", 4)
-    center("СКАНИРОВАНИЕ ЛИЧНОСТИ", 6)
+    center("IDENTITY SCAN", 6)
     center("==============================", 8)
 
-    center("ИГРОК НЕ ОБНАРУЖЕН", 10)
+    center("NO PERSON DETECTED", 10)
 
-    center("ВСТАНЬТЕ ПЕРЕД", 12)
+    center("PLEASE STAND IN FRONT", 12)
 
-    center("СКАНЕРОМ", 14)
+    center("OF THE SCANNER", 14)
 
     center(
-        "СИСТЕМА БЕЗОПАСНОСТИ БАНКА",
+        "BANK SECURITY SYSTEM",
         height - 1
     )
 
@@ -261,6 +261,7 @@ local function scanIdentity()
 
     drawScanningScreen()
 
+    -- Небольшая задержка для эффекта сканирования
     sleep(0.5)
 
     --------------------------------------------------
@@ -276,7 +277,7 @@ local function scanIdentity()
 
 
     --------------------------------------------------
-    -- НИКТО НЕ ОБНАРУЖЕН
+    -- НИКОГО НЕТ
     --------------------------------------------------
 
     if #players == 0 then
@@ -290,9 +291,10 @@ local function scanIdentity()
 
 
     --------------------------------------------------
-    -- ИЩЕМ ХОТЯ БЫ ОДНОГО ДОПУЩЕННОГО
+    -- ИЩЕМ ХОТЯ БЫ ОДНОГО РАЗРЕШЁННОГО
     --
-    -- ПОСТОРОННИЕ ИГРОКИ НЕ МЕШАЮТ.
+    -- ВАЖНО:
+    -- остальные игроки НЕ МЕШАЮТ ДОСТУПУ.
     --------------------------------------------------
 
     local authorizedPlayer = nil
@@ -311,7 +313,7 @@ local function scanIdentity()
 
 
     --------------------------------------------------
-    -- ДОПУЩЕННЫЙ ИГРОК НАЙДЕН
+    -- ЕСЛИ РАЗРЕШЁННЫЙ ИГРОК НАЙДЕН
     --------------------------------------------------
 
     if authorizedPlayer then
@@ -329,7 +331,7 @@ local function scanIdentity()
 
 
     --------------------------------------------------
-    -- ДОПУЩЕННЫХ ИГРОКОВ НЕТ
+    -- РАЗРЕШЁННОГО ИГРОКА НЕТ
     --------------------------------------------------
 
     drawAccessDenied()
@@ -343,6 +345,7 @@ end
 -- ЗАПУСК
 --------------------------------------------------
 
+-- При запуске сигнал двери выключен
 redstone.setOutput(
     DOOR_SIDE,
     false
@@ -362,13 +365,19 @@ drawScannerScreen()
 
 while true do
 
+    -- Ждём нажатия клавиши
     local event, key =
         os.pullEvent("key")
+
+    --------------------------------------------------
+    -- ENTER = ЗАПУСК СКАНИРОВАНИЯ
+    --------------------------------------------------
 
     if key == keys.enter then
 
         scanIdentity()
 
+        -- Возвращаем главный экран
         drawScannerScreen()
 
     end
