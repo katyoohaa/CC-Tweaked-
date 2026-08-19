@@ -1,6 +1,7 @@
 -------------------------------
--- Liquid Wave Animation 
+-- Liquid Wave Monitor Effect
 -- For CC:Tweaked Monitors
+-- Author: YourName
 -- Description:
 --   Creates colorful, flowing patterns that look like liquid waves.
 --   Multiple "attraction centers" move across the screen and influence the waves.
@@ -79,4 +80,21 @@ local function drawLiquid(offset, centers)
             end
 
             -- Pick color based on influence value
-            local colorIndex = math.floor(influence * 2 + offset / 3) % #COLOR*
+            local colorIndex = math.floor(influence * 2 + offset / 3) % #COLOR_PALETTE + 1
+            mon.setBackgroundColor(getColor(colorIndex))
+            mon.write(" ")
+        end
+    end
+end
+
+-- === Main Loop ===
+local w, h = mon.getSize()
+local centers = initCenters(w, h)
+local t = 0
+
+while true do
+    drawLiquid(t, centers)
+    updateCenters(centers, w, h)
+    t = t + 1
+    sleep(FRAME_DELAY)
+end
